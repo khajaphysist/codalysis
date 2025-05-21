@@ -5,12 +5,13 @@ from typing import List, Optional
 from repository import Repository
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
+import requests
 
 class RepoManager:
     """
     Manages cloning and updating git repositories.
     """
-    def __init__(self, data_dir: str = "./data", repository_urls: List[str] = []):
+    def __init__(self, data_dir: str = "./data", repository_urls: List[str] = [], group_url: str = None):
         """
         Initializes the RepoManager and syncs the provided repositories.
 
@@ -22,9 +23,12 @@ class RepoManager:
         os.makedirs(self.data_dir, exist_ok=True)
         self.metadata_file = os.path.join(self.data_dir, "repos_metadata.json")
         self.repos: List[Repository] = self._load_metadata()
+        
+        if group_url:
+            group_urls = fetch_repos_under_group(group_url)
 
         # Combine URLs from metadata and provided URLs, removing duplicates
-        all_urls = list(set([repo.url for repo in self.repos] + repository_urls))
+        all_urls = list(set([repo.url for repo in self.repos] + repository_urls + group_urls))
 
         if all_urls:
             self.sync_repositories(all_urls)
@@ -129,4 +133,64 @@ class RepoManager:
         with open(self.metadata_file, "w") as f:
             json.dump(metadata, f, indent=2)
         print(f"Repository metadata written to {self.metadata_file}")
-    
+
+def fetch_repos_under_group(url: str) -> List[str]:
+    """
+    Fetches all repository URLs under a given GitLab or GitHub group URL.
+
+    Args:
+        url (str): The URL of the group (e.g., https://gitlab.com/my-group or https://github.com/my-org).
+
+    Returns:
+        List[str]: A list of repository URLs found under the group.
+    """
+    parsed_url = urllib.parse.urlparse(url)
+    hostname = parsed_url.hostname
+    path_parts = parsed_url.path.strip('/').split('/')
+
+    repo_urls = []
+
+    if "github.com" in hostname:
+        if len(path_parts) < 1:
+            print(f"Invalid GitHub group URL: {url}")
+            return []
+        org_name = path_parts[0]
+        api_url = f"https://api.github.com/orgs/{org_name}/repos"
+        page = 1
+        while True:
+            response = requests.get(api_url, params={'page': page, 'per_page': 100, 'sort': 'updated'})
+            if response.status_code != 200:
+                print(f"Error fetching GitHub repositories: {response.status_code}")
+                break
+            repos_data = response.json()
+            if not repos_data:
+                break
+            for repo in repos_data:
+                repo_urls.append(repo['clone_url'])
+            page += 1
+
+    elif "gitlab.com" in hostname:
+        if len(path_parts) < 1:
+            print(f"Invalid GitLab group URL: {url}")
+            return []
+        group_path = '/'.join(path_parts)
+        api_url = f"https://gitlab.com/api/v4/groups/{urllib.parse.quote_plus(group_path)}/projects"
+        page = 1
+        while True:
+            response = requests.get(api_url, params={'page': page, 'per_page': 100})
+            if response.status_code != 200:
+                print(f"Error fetching GitLab repositories: {response.status_code}")
+                break
+            repos_data = response.json()
+            if not repos_data:
+                break
+            for repo in repos_data:
+                repo_urls.append(repo['http_url_to_repo'])
+            page += 1
+    else:
+        print(f"Unsupported hosting platform for URL: {url}")
+
+    return repo_urls
+
+if __name__ == "__main__":
+    print(fetch_repos_under_group("https://github.com/facebook"))
