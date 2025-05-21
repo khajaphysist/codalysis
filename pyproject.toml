@@ -12,6 +12,7 @@ dependencies = [
     "ipykernel>=6.29.5",
     "litellm>=1.70.0",
     "milvus>=2.3.9",
+    "pick>=2.4.0",
     "pydantic>=2.11.4",
     "pymilvus[model]>=2.5.9",
     "python-dotenv>=1.1.0",

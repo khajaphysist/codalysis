@@ -6,6 +6,7 @@ from repository import Repository
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import requests
+from pick import pick
 
 class RepoManager:
     """
@@ -23,9 +24,13 @@ class RepoManager:
         os.makedirs(self.data_dir, exist_ok=True)
         self.metadata_file = os.path.join(self.data_dir, "repos_metadata.json")
         self.repos: List[Repository] = self._load_metadata()
-        
+
+        group_urls = []
         if group_url:
             group_urls = fetch_repos_under_group(group_url)
+            if group_urls:
+                group_urls = filter_repos_according_to_user(group_urls)
+
 
         # Combine URLs from metadata and provided URLs, removing duplicates
         all_urls = list(set([repo.url for repo in self.repos] + repository_urls + group_urls))
@@ -192,5 +197,29 @@ def fetch_repos_under_group(url: str) -> List[str]:
 
     return repo_urls
 
+def filter_repos_according_to_user(repo_urls: List[str]) -> List[str]:
+    """Interactively asks user which repos to be included and filters the rest
+
+    Args:
+        repo_urls (List[str]): The list of repository URLs to filter.
+
+    Returns:
+        List[str]: The list of selected repository URLs.
+    """
+    if not repo_urls:
+        print("No repositories found to filter.")
+        return []
+
+    title = 'Select repositories to include (Space to toggle, Enter to confirm):'
+    options = repo_urls
+
+    selected_options = pick(options, title, multiselect=True, min_selection_count=0)
+
+    return [option for option, index in selected_options]
+
+
 if __name__ == "__main__":
-    print(fetch_repos_under_group("https://github.com/facebook"))
+    repos = fetch_repos_under_group("https://github.com/facebook")
+    if repos:
+        filtered_repos = filter_repos_according_to_user(repos)
+        print(f"Selected Repositories: {filtered_repos}", )
