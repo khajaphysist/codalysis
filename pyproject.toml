@@ -1,0 +1,21 @@
+[project]
+name = "codalysis"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aider>=0.2.6",
+    "crawl4ai>=0.6.3",
+    "einops>=0.8.1",
+    "gitpython>=3.1.44",
+    "ipykernel>=6.29.5",
+    "litellm>=1.70.0",
+    "milvus>=2.3.9",
+    "pydantic>=2.11.4",
+    "pymilvus[model]>=2.5.9",
+    "python-dotenv>=1.1.0",
+    "sentence-transformers>=4.1.0",
+    "tqdm>=4.67.1",
+    "transformers>=4.51.3",
+]

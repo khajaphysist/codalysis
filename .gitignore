@@ -1,0 +1,29 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Data director
+data/
+
+# Environment files
+.env
+.aider.conf.yml
+.aider*
+
+# Temp files
+tmp/
+
+# Output files
+output/
+*.db
+*.txt
+
+# OS files
+.DS_Store
